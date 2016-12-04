@@ -1,0 +1,210 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="author" content="" />
+<meta name="copyright" content="" />
+<meta name="description" content="" />
+<title></title>
+<link rel="stylesheet" href="./Css/index.css" />
+<script src="Js/ajax6.js"></script>
+<script>
+window.onload=function(){
+	var oBtn=document.getElementById('send');
+	var oSend=document.getElementById('send-btn');
+	var oUser=document.getElementById('username');	
+	var oContent=document.getElementById('content');	
+	var oClose=document.getElementById('close');
+	var oLightBox=document.getElementById('send-form');
+	var oMain=document.getElementById('main');
+	var zIndex=2;
+	oBtn.onclick=function(){
+		oLightBox.style.display='block';
+		oLightBox.style.left=(document.documentElement.clientWidth-oLightBox.offsetWidth)/2+'px';
+		oLightBox.style.top=(document.documentElement.clientHeight-oLightBox.offsetHeight)/2+'px';	
+	};
+	oClose.onclick=function(){
+		oLightBox.style.display='none';	
+	};
+	
+	//1. 发表许愿
+	oSend.onclick=function(){
+		oLightBox.style.display='none';	
+		//1. 发表许愿wish.php?act=add&username=xxx&content=xxx
+		ajax({
+			url:	'wish.php',
+			data:	{
+				act:'add',
+				username:oUser.value,
+				content:oContent.value
+			},
+			success:function(str){
+				//{error:1, msg:xxx, id: 心愿ID, time: 1435567718}
+				var json=eval('('+str+')');//解析
+				if(json.error==0){
+					//DOM操作
+					createMsg(json.id,oUser.value,oContent.value,json.time);
+				}
+			}	
+		});
+	};
+	function createMsg(id,user,content,time){
+		var oDl=document.createElement('dl');
+		oDl.className='paper a'+rnd(1,6);
+		oDl.innerHTML=
+		'<dt>\
+            <span class="username">'+user+'</span>\
+            <span class="num">'+fillZero(id)+'</span>\
+        </dt>\
+        <dd class="content">'+content+'</dd>\
+        <dd class="bottom">\
+            <span class="time">'+time+'</span>\
+            <a href="javascript:;" class="close"></a>\
+        </dd>'
+		var oRemove=oDl.getElementsByTagName('a')[0];
+		oRemove.onclick=function(){
+			//3.删除心愿wish.php?act=delete&id=0;	
+			ajax({
+				url:	'wish.php',
+				data:	{act:'delete',id:id},
+				success:function(str){
+					//{error:1, msg:xxx}
+					var json=eval('('+str+')');	
+					if(json.error==0){
+						alert('删除愿望成功');
+						oMain.removeChild(oDl);
+					}else{
+						alert('删除愿望失败');
+					}
+				}	
+			});
+		};
+		oMain.appendChild(oDl);
+		oDl.style.left=rnd(0,oMain.offsetWidth-oDl.offsetWidth)+'px';
+		oDl.style.top=rnd(0,document.documentElement.clientHeight-126-oDl.offsetHeight)+'px';
+		
+		drag(oDl,oDl.children[0]);
+		
+	}
+	function drag(oParent,obj){
+		obj.onmousedown=function(ev){
+			oParent.style.zIndex=zIndex++;
+			oParent.style.opacity=0.5;
+			var e=ev||event;
+			//var disX=e.pageX-getPos(oParent).left
+			var disX=e.clientX-oParent.offsetLeft;	
+			var disY=e.clientY-oParent.offsetTop;	
+			document.onmousemove=function(ev){
+				var e=ev||event;
+				var l=e.clientX-disX;//计算
+				var t=e.clientY-disY;
+				
+				//限定
+				if(l<0)l=0;
+				if(l>oMain.offsetWidth-oParent.offsetWidth)
+					l=oMain.offsetWidth-oParent.offsetWidth;
+				if(t<0) t=0;
+				if(t>document.documentElement.clientHeight-126-oParent.offsetHeight)
+					t=document.documentElement.clientHeight-126-oParent.offsetHeight;
+				
+				oParent.style.left=l+'px';//使用
+				oParent.style.top=t+'px';	
+			};
+			document.onmouseup=function(){
+				document.onmousemove=document.onmouseup=null;
+				oParent.style.opacity=1;
+			};
+			return false;
+		};
+	}
+	
+	//2. 获取所有心愿wish.php?act=get
+	ajax({
+		url:	'wish.php',
+		data:	{act:'get'},
+		success:function(str){
+			//{error:0, msg:[{'id':1, 'username':'xxx', 'content':'xxx', time: 1435567718},{},{},{}.......]}	
+			var json=eval('('+str+')');
+			if(json.error==0){
+				var arr=json.msg;
+				for(var i=0;i<arr.length;i++){
+					createMsg(arr[i].id,arr[i].username,arr[i].content,arr[i].time);	
+				}
+			}
+		}	
+	});
+	
+	
+	
+	
+};
+function rnd(n,m){
+	return parseInt(n+Math.random()*(m-n));
+}
+function fillZero(n){
+	if(n<10){
+		return 'No.0000'+n;	
+	}else if(n>=10 && n<100){
+		return 'No.000'+n;		
+	}else if(n>=100 && n<1000){
+		return 'No.00'+n;		
+	}else if(n>=1000 && n<10000){
+		return 'No.0'+n;		
+	}else if(n>=10000){
+		return 'No.'+n;		
+	}
+}
+</script>
+</head>
+<body>
+<div id="top">
+    <span id="send"></span>
+</div>
+<div id="main">
+    <!--<dl class="paper a1">
+        <dt>
+            <span class="username">智能社</span>
+            <span class="num">No.00001</span>
+        </dt>
+        <dd class="content">欢迎来到智能社</dd>
+        <dd class="bottom">
+            <span class="time">今天08:30</span>
+            <a href="javascript:;" class="close"></a>
+        </dd>
+    </dl>-->
+</div>
+
+<div id="send-form">
+    <p class="title"><span>许下你的愿望</span><a href="javascript:;" id="close"></a></p>
+    <form action="" name="wish">
+        <p>
+            <label for="username">昵称：</label>
+            <input type="text" name="username" id="username"/>
+        </p>
+        <p>
+            <label for="content">愿望：(您还可以输入&nbsp;<span id="font-num">50</span>&nbsp;个字)</label>
+            <textarea name="content" id="content"></textarea>
+            <div id="phiz">
+                <img src="./Images/phiz/zhuakuang.gif" alt="抓狂" />
+                <img src="./Images/phiz/baobao.gif" alt="抱抱" />
+                <img src="./Images/phiz/haixiu.gif" alt="害羞" />
+                <img src="./Images/phiz/ku.gif" alt="酷" />
+                <img src="./Images/phiz/xixi.gif" alt="嘻嘻" />
+                <img src="./Images/phiz/taikaixin.gif" alt="太开心" />
+                <img src="./Images/phiz/touxiao.gif" alt="偷笑" />
+                <img src="./Images/phiz/qian.gif" alt="钱" />
+                <img src="./Images/phiz/huaxin.gif" alt="花心" />
+                <img src="./Images/phiz/jiyan.gif" alt="挤眼" />
+            </div>
+        </p>
+        <span id="send-btn"></span>
+    </form>
+</div>
+<!--[if IE 6]>
+<script type="text/javascript" src="./Js/iepng.js"></script>
+<script type="text/javascript">
+    DD_belatedPNG.fix("#send,#close,.close","background");
+</script>
+<![endif]-->
+</body>
+</html>
